@@ -130,4 +130,37 @@ function RingScanner({ onDetected }){
 
 // --------------------------- App ---------------------------
 export default function LoftBookApp(){
+   const [ring, setRing] = useState('')
+  const [formatted, setFormatted] = useState('')
+
+  function handleChange(e){
+    const value = e.target.value
+    setRing(value)
+    setFormatted(formatRing(value))
+  }
+
+  function handleDetected(value){
+    setRing(value)
+    setFormatted(value)
+  }
+
+  return (
+    <div className="p-4 max-w-md mx-auto space-y-4">
+      <h1 className="text-xl font-bold">LoftBook</h1>
+
+      <input
+        value={ring}
+        onChange={handleChange}
+        placeholder="Enter ring number"
+        className="w-full border p-2 rounded-xl"
+      />
+
+      <div className="p-2 bg-gray-100 rounded-xl">
+        <strong>Formatted:</strong> {formatted}
+      </div>
+
+      <RingScanner onDetected={handleDetected} />
+    </div>
+  )
+}
  
