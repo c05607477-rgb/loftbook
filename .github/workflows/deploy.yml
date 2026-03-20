@@ -10,6 +10,11 @@ permissions:
   pages: write
   id-token: write
 
+# Ensure any JavaScript-based actions in this workflow run on Node 24 now.
+# (Safe to keep even after Node 24 becomes default.)
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -21,11 +26,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (v24)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
+      # If you don't have a package-lock.json, use npm i (not npm ci)
       - name: Install dependencies
         run: npm i
 
