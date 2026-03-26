@@ -7,7 +7,7 @@ import Tree from 'react-d3-tree'
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')
   style.innerHTML = `
-    * { outline: 1px solid rgba(255,0,0,0.3) !important; }
+    * { outline: 1px solid rgba(255,0,0,0.2) !important; }
   `
   document.head.appendChild(style)
 }
@@ -69,8 +69,7 @@ export default function LoftBookApp() {
   }
 
   function addBird() {
-    alert('addBird triggered: ' + input) // MOBILE DEBUG ALERT
-
+    alert('addBird triggered: ' + input) // temporary mobile debug
     const ring = formatRing(input)
     if (!ring) return
 
@@ -125,6 +124,9 @@ export default function LoftBookApp() {
               element={
                 <>
                   <input
+                    id="ringInput"
+                    name="ring"
+                    autoComplete="off"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -166,6 +168,8 @@ export default function LoftBookApp() {
               element={
                 <>
                   <input
+                    id="searchInput"
+                    name="search"
                     placeholder="Search..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
