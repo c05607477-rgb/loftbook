@@ -3,6 +3,15 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Tree from 'react-d3-tree'
 
+// ---------- TEMP: Debug overlay outlines ----------
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.innerHTML = `
+    * { outline: 1px solid rgba(255,0,0,0.3) !important; }
+  `
+  document.head.appendChild(style)
+}
+
 // ---------- STORAGE ----------
 function loadBirds() {
   try {
@@ -60,6 +69,8 @@ export default function LoftBookApp() {
   }
 
   function addBird() {
+    alert('addBird triggered: ' + input) // MOBILE DEBUG ALERT
+
     const ring = formatRing(input)
     if (!ring) return
 
@@ -86,7 +97,7 @@ export default function LoftBookApp() {
     <Router>
       <div className="min-h-screen bg-gray-950 text-white flex flex-col">
         {/* HEADER */}
-        <div className="p-4 text-center border-b border-gray-800">
+        <div className="p-4 text-center border-b border-gray-800 z-10 bg-gray-950">
           <h1 className="text-xl font-bold">🕊️ LoftBook Pro</h1>
         </div>
 
@@ -106,81 +117,108 @@ export default function LoftBookApp() {
         </AnimatePresence>
 
         {/* CONTENT */}
-        <div className="flex-1 p-4 space-y-4 overflow-auto">
+        <div className="flex-1 p-4 space-y-4 overflow-auto relative z-0">
           <Routes>
             {/* SCAN TAB */}
-            <Route path="/" element={
-              <>
-                <input
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') addBird() }}
-                  placeholder="Enter ring..."
-                  className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 mb-2"
-                />
-                <button
-                  type="button"
-                  onClick={addBird}
-                  className="w-full bg-blue-600 p-3 rounded-xl mb-4">
-                  ➕ Save Bird
-                </button>
+            <Route
+              path="/"
+              element={
+                <>
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') addBird()
+                    }}
+                    placeholder="Enter ring..."
+                    className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 mb-2 text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={addBird}
+                    onTouchStart={addBird}
+                    style={{
+                      position: 'relative',
+                      zIndex: 9999,
+                      pointerEvents: 'auto',
+                      touchAction: 'manipulation',
+                    }}
+                    className="w-full bg-blue-600 p-3 rounded-xl mb-4 active:bg-blue-700"
+                  >
+                    ➕ Save Bird
+                  </button>
 
-                {/* Instant feedback */}
-                <div className="space-y-2">
-                  {birds.map(b => (
-                    <div key={b.id} className="p-2 bg-gray-800 rounded">{b.ring}</div>
-                  ))}
-                </div>
-              </>
-            } />
+                  {/* Instant feedback list */}
+                  <div className="space-y-2">
+                    {birds.map((b) => (
+                      <div key={b.id} className="p-2 bg-gray-800 rounded">
+                        {b.ring}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              }
+            />
 
             {/* BIRDS TAB */}
-            <Route path="/birds" element={
-              <>
-                <input
-                  placeholder="Search..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-gray-800 mb-2"
-                />
-                {filtered.map(b => (
-                  <div key={b.id}
-                    onClick={() => setSelected(b)}
-                    className="p-3 bg-gray-800 rounded-xl mb-2 cursor-pointer">
-                    <div className="font-bold">{b.ring}</div>
-                    <div className="text-sm text-gray-400">
-                      Father: {b.father || '-'} | Mother: {b.mother || '-'}
+            <Route
+              path="/birds"
+              element={
+                <>
+                  <input
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full p-3 rounded-xl bg-gray-800 mb-2"
+                  />
+                  {filtered.map((b) => (
+                    <div
+                      key={b.id}
+                      onClick={() => setSelected(b)}
+                      className="p-3 bg-gray-800 rounded-xl mb-2 cursor-pointer"
+                    >
+                      <div className="font-bold">{b.ring}</div>
+                      <div className="text-sm text-gray-400">
+                        Father: {b.father || '-'} | Mother: {b.mother || '-'}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </>
-            } />
+                  ))}
+                </>
+              }
+            />
 
             {/* PEDIGREE TAB */}
-            <Route path="/pedigree" element={
-              selected ? (
-                <div className="w-full h-96 overflow-auto">
-                  <Tree
-                    data={buildTree(selected, birds)}
-                    orientation="vertical"
-                    translate={{ x: 200, y: 50 }}
-                    nodeSize={{ x: 150, y: 80 }}
-                    pathFunc="elbow"
-                    collapsible={false}
-                    zoomable={true}
-                    separation={{ siblings: 1, nonSiblings: 2 }}
-                    onNodeClick={(node) =>
-                      setSelected(birds.find(b => b.ring === node.data.name))
-                    }
-                  />
-                </div>
-              ) : <div className="text-center text-gray-400">Select a bird in Birds tab</div>
-            } />
+            <Route
+              path="/pedigree"
+              element={
+                selected ? (
+                  <div className="w-full h-96 overflow-auto">
+                    <Tree
+                      data={buildTree(selected, birds)}
+                      orientation="vertical"
+                      translate={{ x: 200, y: 50 }}
+                      nodeSize={{ x: 150, y: 80 }}
+                      pathFunc="elbow"
+                      collapsible={false}
+                      zoomable={true}
+                      separation={{ siblings: 1, nonSiblings: 2 }}
+                      onNodeClick={(node) =>
+                        setSelected(birds.find((b) => b.ring === node.data.name))
+                      }
+                    />
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400">
+                    Select a bird in Birds tab
+                  </div>
+                )
+              }
+            />
           </Routes>
         </div>
 
         {/* NAV */}
-        <div className="flex justify-around p-2 border-t border-gray-800">
+        <div className="flex justify-around p-2 border-t border-gray-800 bg-gray-950 z-10">
           <Link to="/" className="text-xl">📷</Link>
           <Link to="/birds" className="text-xl">🕊️</Link>
           <Link to="/pedigree" className="text-xl">🧬</Link>
