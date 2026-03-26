@@ -1,9 +1,29 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
+// ---------- STORAGE ----------
+function loadBirds(){
+  return JSON.parse(localStorage.getItem('birds') || '[]')
+}
+
+function saveBirds(birds){
+  localStorage.setItem('birds', JSON.stringify(birds))
+}
+
+// ---------- APP ----------
 export default function LoftBookApp(){
+  const [birds, setBirds] = useState([])
   const [input, setInput] = useState('')
-  const [formatted, setFormatted] = useState('')
+  const [selected, setSelected] = useState(null)
   const [tab, setTab] = useState('scan')
+  const [search, setSearch] = useState('')
+
+  useEffect(()=>{
+    setBirds(loadBirds())
+  },[])
+
+  useEffect(()=>{
+    saveBirds(birds)
+  },[birds])
 
   function formatRing(raw){
     if(!raw) return ''
@@ -12,102 +32,138 @@ export default function LoftBookApp(){
     return r
   }
 
-  function handleChange(e){
-    const val = e.target.value
-    setInput(val)
-    setFormatted(formatRing(val))
+  function addBird(){
+    const ring = formatRing(input)
+    if(!ring) return
+
+    const newBird = {
+      id: Date.now(),
+      ring,
+      father: null,
+      mother: null
+    }
+
+    setBirds([...birds, newBird])
+    setInput('')
   }
 
+  function setParent(childId, parentType, parentRing){
+    setBirds(birds.map(b=>{
+      if(b.id === childId){
+        return {...b, [parentType]: parentRing}
+      }
+      return b
+    }))
+  }
+
+  const filtered = birds.filter(b =>
+    b.ring.toLowerCase().includes(search.toLowerCase())
+  )
+
+  // ---------- UI ----------
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white flex flex-col">
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
 
       {/* HEADER */}
-      <div className="p-4 text-center border-b border-gray-800 backdrop-blur">
-        <h1 className="text-2xl font-bold tracking-wide">
-          🕊️ LoftBook Pro
-        </h1>
+      <div className="p-4 text-center border-b border-gray-800">
+        <h1 className="text-xl font-bold">🕊️ LoftBook Pro</h1>
       </div>
 
       {/* CONTENT */}
       <div className="flex-1 p-4 space-y-4">
 
+        {/* SCAN TAB */}
         {tab === 'scan' && (
-          <div className="space-y-4">
+          <>
+            <input
+              value={input}
+              onChange={e=>setInput(e.target.value)}
+              placeholder="Enter ring..."
+              className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700"
+            />
 
-            {/* INPUT CARD */}
-            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-4 shadow-xl">
-              <p className="text-sm text-gray-400 mb-2">Ring Input</p>
+            <button onClick={addBird}
+              className="w-full bg-blue-600 p-3 rounded-xl">
+              ➕ Save Bird
+            </button>
+          </>
+        )}
 
-              <input
-                value={input}
-                onChange={handleChange}
-                placeholder="Enter ring number..."
-                className="w-full p-3 rounded-xl bg-black/40 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              />
-            </div>
+        {/* BIRDS TAB */}
+        {tab === 'birds' && (
+          <>
+            <input
+              placeholder="Search..."
+              value={search}
+              onChange={e=>setSearch(e.target.value)}
+              className="w-full p-3 rounded-xl bg-gray-800"
+            />
 
-            {/* RESULT CARD */}
-            <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-white/10 rounded-2xl p-4 text-center">
-              <p className="text-sm text-gray-400">Formatted Ring</p>
-              <div className="text-2xl font-bold text-blue-400 mt-1">
-                {formatted || '—'}
+            {filtered.map(b=>(
+              <div key={b.id}
+                onClick={()=>setSelected(b)}
+                className="p-3 bg-gray-800 rounded-xl mb-2 cursor-pointer">
+
+                <div className="font-bold">{b.ring}</div>
+                <div className="text-sm text-gray-400">
+                  Father: {b.father || '-'} | Mother: {b.mother || '-'}
+                </div>
+
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* PEDIGREE TAB */}
+        {tab === 'pedigree' && selected && (
+          <div className="space-y-3">
+
+            <h2 className="text-lg font-semibold text-center">
+              🧬 Pedigree
+            </h2>
+
+            {/* TREE */}
+            <div className="bg-gray-900 p-4 rounded-xl text-center">
+              <div className="text-blue-400 font-bold">
+                {selected.ring}
+              </div>
+
+              <div className="flex justify-between mt-4">
+                <div>
+                  <div className="text-sm text-gray-400">Father</div>
+                  <div>{selected.father || '-'}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-400">Mother</div>
+                  <div>{selected.mother || '-'}</div>
+                </div>
               </div>
             </div>
 
-            {/* ACTIONS */}
-            <div className="grid grid-cols-2 gap-3">
-              <button className="bg-blue-600 hover:bg-blue-700 p-3 rounded-xl font-semibold">
-                📷 Scan
-              </button>
-              <button className="bg-green-600 hover:bg-green-700 p-3 rounded-xl font-semibold">
-                ➕ Save
-              </button>
-            </div>
+            {/* SET PARENTS */}
+            <input
+              placeholder="Set Father Ring"
+              onBlur={e=>setParent(selected.id,'father', formatRing(e.target.value))}
+              className="w-full p-2 bg-gray-800 rounded"
+            />
 
-          </div>
-        )}
+            <input
+              placeholder="Set Mother Ring"
+              onBlur={e=>setParent(selected.id,'mother', formatRing(e.target.value))}
+              className="w-full p-2 bg-gray-800 rounded"
+            />
 
-        {tab === 'birds' && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Your Birds</h2>
-
-            <div className="bg-white/5 p-3 rounded-xl border border-white/10">
-              🕊️ IHU 26 12345
-            </div>
-
-            <div className="bg-white/5 p-3 rounded-xl border border-white/10">
-              🕊️ NL 24 987654
-            </div>
-          </div>
-        )}
-
-        {tab === 'races' && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Races</h2>
-
-            <div className="bg-white/5 p-3 rounded-xl border border-white/10">
-              🏁 120km Training
-            </div>
-
-            <div className="bg-white/5 p-3 rounded-xl border border-white/10">
-              🏁 300km Regional
-            </div>
           </div>
         )}
 
       </div>
 
-      {/* BOTTOM NAV */}
-      <div className="flex justify-around border-t border-gray-800 bg-black/70 backdrop-blur p-2">
-        <button onClick={()=>setTab('scan')} className={tab==='scan' ? 'text-blue-400' : 'text-gray-400'}>
-          📷
-        </button>
-        <button onClick={()=>setTab('birds')} className={tab==='birds' ? 'text-blue-400' : 'text-gray-400'}>
-          🕊️
-        </button>
-        <button onClick={()=>setTab('races')} className={tab==='races' ? 'text-blue-400' : 'text-gray-400'}>
-          🏁
-        </button>
+      {/* NAV */}
+      <div className="flex justify-around p-2 border-t border-gray-800">
+        <button onClick={()=>setTab('scan')}>📷</button>
+        <button onClick={()=>setTab('birds')}>🕊️</button>
+        <button onClick={()=>setTab('pedigree')}>🧬</button>
       </div>
 
     </div>
