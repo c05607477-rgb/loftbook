@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import Tree from 'react-d3-tree'
 
 // ---------- STORAGE ----------
-function loadBirds(){
+function loadBirds() {
   return JSON.parse(localStorage.getItem('birds') || '[]')
 }
 
-function saveBirds(birds){
+function saveBirds(birds) {
   localStorage.setItem('birds', JSON.stringify(birds))
+}
+
+// ---------- TREE BUILDER ----------
+function buildTree(selectedBird, birds) {
+  if (!selectedBird) return null
+
+  const getNode = (bird) => ({
+    name: bird.ring,
+    children: [
+      bird.father ? getNode(birds.find(b => b.ring === bird.father)) : null,
+      bird.mother ? getNode(birds.find(b => b.ring === bird.mother)) : null
+    ].filter(Boolean)
+  })
+
+  return getNode(selectedBird)
 }
 
 // ---------- APP ----------
@@ -27,27 +43,28 @@ export default function LoftBookApp() {
     saveBirds(birds)
   }, [birds])
 
-  function formatRing(raw){
-    if(!raw) return ''
-    let r = raw.toUpperCase().replace(/[^A-Z0-9]/g,'')
-    if(!r.startsWith('IHU')) r = 'IHU' + r
+  // ---------- HELPERS ----------
+  function formatRing(raw) {
+    if (!raw) return ''
+    let r = raw.toUpperCase().replace(/[^A-Z0-9]/g, '')
+    if (!r.startsWith('IHU')) r = 'IHU' + r
     return r
   }
 
-  function addBird(){
+  function addBird() {
     const ring = formatRing(input)
-    if(!ring) return
+    if (!ring) return
 
     const newBird = { id: Date.now(), ring, father: null, mother: null }
     setBirds([...birds, newBird])
     setInput('')
     setNotification(`${ring} added!`)
-    setTimeout(()=>setNotification(null), 2000)
+    setTimeout(() => setNotification(null), 2000)
   }
 
-  function setParent(childId, parentType, parentRing){
+  function setParent(childId, parentType, parentRing) {
     setBirds(birds.map(b => {
-      if(b.id === childId) return { ...b, [parentType]: parentRing }
+      if (b.id === childId) return { ...b, [parentType]: parentRing }
       return b
     }))
   }
@@ -65,39 +82,40 @@ export default function LoftBookApp() {
           <h1 className="text-xl font-bold">🕊️ LoftBook Pro</h1>
         </div>
 
-        {/* CONTENT */}
-        <div className="flex-1 p-4 space-y-4">
-          <AnimatePresence>
-            {notification && (
-              <motion.div
-                key="toast"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white p-2 rounded z-50"
-              >
-                {notification}
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* NOTIFICATIONS */}
+        <AnimatePresence>
+          {notification && (
+            <motion.div
+              key="toast"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white p-2 rounded z-50"
+            >
+              {notification}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+        {/* CONTENT */}
+        <div className="flex-1 p-4 space-y-4 overflow-auto">
           <Routes>
             {/* SCAN TAB */}
             <Route path="/" element={
               <>
                 <input
                   value={input}
-                  onChange={e=>setInput(e.target.value)}
+                  onChange={e => setInput(e.target.value)}
                   placeholder="Enter ring..."
                   className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 mb-2"
                 />
-
                 <button
                   onClick={addBird}
                   className="w-full bg-blue-600 p-3 rounded-xl mb-4">
                   ➕ Save Bird
                 </button>
 
+                {/* Instant feedback */}
                 <div className="space-y-2">
                   {birds.map(b => (
                     <div key={b.id} className="p-2 bg-gray-800 rounded">{b.ring}</div>
@@ -112,12 +130,12 @@ export default function LoftBookApp() {
                 <input
                   placeholder="Search..."
                   value={search}
-                  onChange={e=>setSearch(e.target.value)}
+                  onChange={e => setSearch(e.target.value)}
                   className="w-full p-3 rounded-xl bg-gray-800 mb-2"
                 />
                 {filtered.map(b => (
                   <div key={b.id}
-                    onClick={()=>setSelected(b)}
+                    onClick={() => setSelected(b)}
                     className="p-3 bg-gray-800 rounded-xl mb-2 cursor-pointer">
                     <div className="font-bold">{b.ring}</div>
                     <div className="text-sm text-gray-400">
@@ -131,34 +149,19 @@ export default function LoftBookApp() {
             {/* PEDIGREE TAB */}
             <Route path="/pedigree" element={
               selected ? (
-                <div className="space-y-3">
-                  <h2 className="text-lg font-semibold text-center">🧬 Pedigree</h2>
-
-                  {/* TREE */}
-                  <div className="bg-gray-900 p-4 rounded-xl text-center">
-                    <div className="text-blue-400 font-bold">{selected.ring}</div>
-                    <div className="flex justify-between mt-4">
-                      <div>
-                        <div className="text-sm text-gray-400">Father</div>
-                        <div>{selected.father || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-400">Mother</div>
-                        <div>{selected.mother || '-'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SET PARENTS */}
-                  <input
-                    placeholder="Set Father Ring"
-                    onBlur={e=>setParent(selected.id,'father', formatRing(e.target.value))}
-                    className="w-full p-2 bg-gray-800 rounded"
-                  />
-                  <input
-                    placeholder="Set Mother Ring"
-                    onBlur={e=>setParent(selected.id,'mother', formatRing(e.target.value))}
-                    className="w-full p-2 bg-gray-800 rounded"
+                <div className="w-full h-96 overflow-auto">
+                  <Tree
+                    data={buildTree(selected, birds)}
+                    orientation="vertical"
+                    translate={{ x: 200, y: 50 }}
+                    nodeSize={{ x: 150, y: 80 }}
+                    pathFunc="elbow"
+                    collapsible={false}
+                    zoomable={true}
+                    separation={{ siblings: 1, nonSiblings: 2 }}
+                    onNodeClick={(node) =>
+                      setSelected(birds.find(b => b.ring === node.data.name))
+                    }
                   />
                 </div>
               ) : <div className="text-center text-gray-400">Select a bird in Birds tab</div>
