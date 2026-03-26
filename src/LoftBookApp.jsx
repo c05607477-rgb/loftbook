@@ -5,11 +5,19 @@ import Tree from 'react-d3-tree'
 
 // ---------- STORAGE ----------
 function loadBirds() {
-  return JSON.parse(localStorage.getItem('birds') || '[]')
+  try {
+    return JSON.parse(localStorage.getItem('birds') || '[]')
+  } catch {
+    return []
+  }
 }
 
 function saveBirds(birds) {
-  localStorage.setItem('birds', JSON.stringify(birds))
+  try {
+    localStorage.setItem('birds', JSON.stringify(birds))
+  } catch (e) {
+    console.warn('Could not save birds', e)
+  }
 }
 
 // ---------- TREE BUILDER ----------
@@ -106,10 +114,12 @@ export default function LoftBookApp() {
                 <input
                   value={input}
                   onChange={e => setInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') addBird() }}
                   placeholder="Enter ring..."
                   className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 mb-2"
                 />
                 <button
+                  type="button"
                   onClick={addBird}
                   className="w-full bg-blue-600 p-3 rounded-xl mb-4">
                   ➕ Save Bird
